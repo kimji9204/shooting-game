@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비행기 슈팅게임</title>
+  <style>
+    canvas {
+      background: skyblue;
+      display: block;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<audio id="shootSound" src="https://www.soundjay.com/mechanical/sounds/mechanical-gunshot-01.mp3"></audio>
+<audio id="hitSound" src="https://www.soundjay.com/button/beep-07.mp3"></audio>
+<audio id="playerHitSound" src="https://www.soundjay.com/button/beep-10.mp3"></audio>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const shootSound = document.getElementById("shootSound");
+  const hitSound = document.getElementById("hitSound");
+  const playerHitSound = document.getElementById("playerHitSound");
+
+  let player, bullets, enemies, keys, score, bulletTimer, enemyTimer, isGameOver, lives;
+
+  function resetGame() {
+    player = {
+      x: canvas.width / 2 - 20,
+      y: canvas.height - 60,
+      width: 40,
+      height: 40,
+      speed: 5
+    };
+    bullets = [];
+    enemies = [];
+    keys = {};
+    score = 0;
+    bulletTimer = 0;
+    enemyTimer = 0;
+    lives = 2;
+    isGameOver = false;
+  }
+
+  resetGame();
+
+  document.addEventListener("keydown", (e) => {
+    keys[e.key] = true;
+    if (isGameOver && e.key === "r") resetGame();
+  });
+
+  document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+  function drawPlayer() {
+    ctx.fillStyle = "blue";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+  }
+
+  function movePlayer() {
+    if (keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
+    if (keys["ArrowRight"] && player.x < canvas.width - player.width) player.x += player.speed;
+    if (keys["ArrowUp"] && player.y > 0) player.y -= player.speed;
+    if (keys["ArrowDown"] && player.y < canvas.height - player.height) player.y += player.speed;
+  }
+
+  function shootBullet() {
+    bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, width: 4, height: 10, speed: 7 });
+    shootSound.currentTime = 0;
+    shootSound.play();
+  }
+
+  function drawBullets() {
+    ctx.fillStyle = "yellow";
+    bullets.forEach((b) => {
+      b.y -= b.speed;
+      ctx.fillRect(b.x, b.y, b.width, b.height);
+    });
+  }
+
+  function createEnemy() {
+    enemies.push({
+      x: Math.random() * (canvas.width - 40),
+      y: -40,
+      width: 40,
+      height: 40,
+      speed: 2 + Math.random() * 2
+    });
+  }
+
+  function drawEnemies() {
+    ctx.fillStyle = "red";
+    enemies.forEach((e) => {
+      e.y += e.speed;
+      ctx.fillRect(e.x, e.y, e.width, e.height);
+    });
+  }
+
+  function checkBulletEnemyCollision() {
+    bullets.forEach((b, bi) => {
+      enemies.forEach((e, ei) => {
+        if (b.x < e.x + e.width && b.x + b.width > e.x &&
+            b.y < e.y + e.height && b.y + b.height > e.y) {
+          bullets.splice(bi, 1);
+          enemies.splice(ei, 1);
+          hitSound.currentTime = 0;
+          hitSound.play();
+          score++;
+        }
+      });
+    });
+  }
+
+  function checkPlayerEnemyCollision() {
+    enemies.forEach((e, ei) => {
+      if (player.x < e.x + e.width && player.x + player.width > e.x &&
+          player.y < e.y + e.height && player.y + player.height > e.y) {
+        enemies.splice(ei, 1);
+        lives--;
+        playerHitSound.currentTime = 0;
+        playerHitSound.play();
+        if (lives <= 0) {
+          isGameOver = true;
+        }
+      }
+    });
+  }
+
+  function drawScore() {
+    ctx.fillStyle = "black";
+    ctx.font = "20px Arial";
+    ctx.fillText(`Score: ${score}`, 10, 30);
+    ctx.fillText(`Lives: ${lives}`, 10, 60);
+  }
+
+  function drawGameOver() {
+    ctx.fillStyle = "black";
+    ctx.font = "30px Arial";
+    ctx.fillText("GAME OVER", 100, 250);
+    ctx.font = "20px Arial";
+    ctx.fillText("Press R to Restart", 110, 300);
+  }
+
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!isGameOver) {
+      movePlayer();
+      drawPlayer();
+
+      if (bulletTimer++ > 10) {
+        shootBullet();
+        bulletTimer = 0;
+      }
+
+      drawBullets();
+      if (enemyTimer++ > 30) {
+        createEnemy();
+        enemyTimer = 0;
+      }
+
+      drawEnemies();
+      checkBulletEnemyCollision();
+      checkPlayerEnemyCollision();
+      drawScore();
+    } else {
+      drawGameOver();
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+</script>
+</body>
+</html>
+let level = Math.floor(gameTick / 600);  // 10초당 1레벨 증가
+ctx.fillText(`Level: ${level}`, 10, 90);
